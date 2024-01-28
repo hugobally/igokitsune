@@ -7,7 +7,37 @@ const WebcamComponent = () => {
   const webcamRef = useRef(null);
   const canvasRef = useRef(null);
   const [inputVertices, setInputVertices] = useState([]);
-  const [parallelogram, setParallelogram] = useState(null);
+  const [quadrilateral, setQuadrilateral] = useState(null);
+
+  const [webcamLoaded, setWebcamLoaded] = useState(false)
+  const [openCvLoaded, setOpenCvLoaded] = useState(false)
+
+  useEffect(() => {
+    if (openCvLoaded && webcamLoaded) {
+      const storedVertices = JSON.parse(localStorage.getItem('inputVertices')) || [];
+      setInputVertices(storedVertices);
+    }
+  }, [webcamLoaded, openCvLoaded]);
+
+  useEffect(() => {
+    if (window.openCvLoading) return ;
+    window.openCvLoading = true;
+
+    const script = document.createElement('script');
+    script.src = 'https://docs.opencv.org/4.x/opencv.js'
+    script.async = true;
+    script.onload = () => {
+      window.openCvLoading = false;
+      setOpenCvLoaded(true)
+    };
+    script.onerror = () => {
+      console.error('Error loading script.');
+    };
+    document.head.appendChild(script);
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -18,59 +48,13 @@ const WebcamComponent = () => {
     // Draw a small white circle around each clicked vertex
     inputVertices.forEach((vertex) => {
       context.fillStyle = 'white';
-      context.fillRect(vertex.x, vertex.y, 1, 1);
+      context.fillRect(vertex.x, vertex.y, 3, 3);
     });
-
-    if (parallelogram) {
-      // Draw the grid using the four corners and sides of the parallelogram
-      const { topLeft, topRight, bottomLeft, bottomRight } = parallelogram;
-
-      const horizontalLines = 19;
-      const verticalLines = 19;
-
-      const deltaXTop = (topRight.x - topLeft.x) / (verticalLines - 1);
-      const deltaYTop = (topRight.y - topLeft.y) / (verticalLines - 1);
-
-      const deltaXBottom = (bottomRight.x - bottomLeft.x) / (verticalLines - 1);
-      const deltaYBottom = (bottomRight.y - bottomLeft.y) / (verticalLines - 1);
-
-      for (let i = 0; i < verticalLines; i++) {
-        const xTop = topLeft.x + i * deltaXTop;
-        const yTop = topLeft.y + i * deltaYTop;
-
-        const xBottom = bottomLeft.x + i * deltaXBottom;
-        const yBottom = bottomLeft.y + i * deltaYBottom;
-
-        context.beginPath();
-        context.moveTo(xTop, yTop);
-        context.lineTo(xBottom, yBottom);
-        context.strokeStyle = 'white';
-        context.stroke();
-      }
-
-      const deltaXLeft = (bottomLeft.x - topLeft.x) / (horizontalLines - 1);
-      const deltaYLeft = (bottomLeft.y - topLeft.y) / (horizontalLines - 1);
-
-      const deltaXRight = (bottomRight.x - topRight.x) / (horizontalLines - 1);
-      const deltaYRight = (bottomRight.y - topRight.y) / (horizontalLines - 1);
-
-      for (let i = 0; i < horizontalLines; i++) {
-        const xLeft = topLeft.x + i * deltaXLeft;
-        const yLeft = topLeft.y + i * deltaYLeft;
-
-        const xRight = topRight.x + i * deltaXRight;
-        const yRight = topRight.y + i * deltaYRight;
-
-        context.beginPath();
-        context.moveTo(xLeft, yLeft);
-        context.lineTo(xRight, yRight);
-        context.strokeStyle = 'white';
-        context.stroke();
-      }
-    }
-  }, [inputVertices, parallelogram]);
+  }, [inputVertices, quadrilateral]);
 
   const handleClick = (event) => {
+    if (!openCvLoaded) return null
+
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
     const x = event.nativeEvent.offsetX * (canvas.width / rect.width);
@@ -78,7 +62,7 @@ const WebcamComponent = () => {
 
     if (inputVertices.length === 4) {
       setInputVertices([{ x, y }]);
-      setParallelogram(null);
+      setQuadrilateral(null);
     } else {
       setInputVertices((prevVertices) => [...prevVertices, { x, y }]);
     }
@@ -86,17 +70,29 @@ const WebcamComponent = () => {
 
   useEffect(() => {
     if (inputVertices.length === 4) {
-      const topLeft = inputVertices.reduce((min, p) => (p.x + p.y < min.x + min.y ? p : min), inputVertices[0]);
-      const topRight = inputVertices.reduce((min, p) => (p.x - p.y > min.x - min.y ? p : min), inputVertices[0]);
-      const bottomLeft = inputVertices.reduce((min, p) => (p.x - p.y < min.x - min.y ? p : min), inputVertices[0]);
-      const bottomRight = inputVertices.reduce((min, p) => (p.x + p.y > min.x + min.y ? p : min), inputVertices[0]);
+      const sortVerticesClockwise = (vertices) => {
+        const center = {
+          x: vertices.reduce((sum, p) => sum + p.x, 0) / vertices.length,
+          y: vertices.reduce((sum, p) => sum + p.y, 0) / vertices.length,
+        };
 
-      setParallelogram({
-        topLeft,
-        topRight,
-        bottomLeft,
-        bottomRight,
+        return vertices.slice().sort((a, b) => {
+          const angleA = Math.atan2(a.y - center.y, a.x - center.x);
+          const angleB = Math.atan2(b.y - center.y, b.x - center.x);
+          return angleA - angleB;
+        });
+      };
+
+      const vertices = sortVerticesClockwise(inputVertices)
+
+      setQuadrilateral({
+        topLeft: vertices[0],
+        topRight: vertices[1],
+        bottomRight: vertices[2],
+        bottomLeft: vertices[3],
       });
+
+      localStorage.setItem('inputVertices', JSON.stringify(inputVertices));
     }
   }, [inputVertices]);
 
@@ -105,6 +101,7 @@ const WebcamComponent = () => {
       <div style={{ position: 'relative' }}>
         <Webcam
           ref={webcamRef}
+          onUserMedia={() => setWebcamLoaded(true)}
           width={640}
           height={480}
           className="pointer-events-none"
@@ -122,7 +119,7 @@ const WebcamComponent = () => {
       {inputVertices.length === 4 && (
         <TransformedImage
           webcamRef={webcamRef}
-          parallelogram={parallelogram}
+          quadrilateral={quadrilateral}
         />
       )}
     </div>

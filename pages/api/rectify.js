@@ -1,15 +1,15 @@
-import { cv } from 'opencv4nodejs'; // Assuming you have 'opencv4nodejs' installed
+// import { cv } from 'opencv4nodejs'; // Assuming you have 'opencv4nodejs' installed
 
 export default async (req, res) => {
-  const { parallelogram, square } = req.body;
+  const { quadrilateral, square } = req.body;
 
-  if (!parallelogram || !square) {
-    res.status(400).json({ error: 'Both parallelogram and square must be provided.' });
+  if (!quadrilateral || !square) {
+    res.status(400).json({ error: 'Both quadrilateral and square must be provided.' });
     return;
   }
 
   try {
-    const image = cv.imread('path/to/your/image.jpg');
+    // const image = cv.imread('path/to/your/image.jpg');
 
     // use getPerspectiveTransformMatrix from the cv lib to get the transform matrix
     const matrix = null
