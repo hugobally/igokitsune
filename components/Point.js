@@ -1,7 +1,5 @@
 class Point {
-  constructor(row, col) {
-    this.row = row;
-    this.col = col;
+  constructor() {
     this.stone = null;
   }
 
@@ -19,12 +17,6 @@ class Point {
 
   getStone() {
     return this.stone;
-  }
-
-  getBrightness(image, gobanOrigin, gobanWidth) {
-    const divisionResult = image.width / 19;
-    console.log(`Brightness calculation: ${divisionResult}`);
-    return 0;
   }
 }
 
