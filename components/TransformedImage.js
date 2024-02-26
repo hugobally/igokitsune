@@ -147,7 +147,7 @@ const TransformedImage = ({ webcamRef, quadrilateral }) => {
               squareMat.data32F[i * 2] = square[key].x;
               squareMat.data32F[i * 2 + 1] = square[key].y;
             });
-            //
+
             // // Get the perspective transform matrix
             const matrix = cv.getPerspectiveTransform(quadrilateralMat, squareMat);
 
@@ -155,8 +155,9 @@ const TransformedImage = ({ webcamRef, quadrilateral }) => {
             const rectifiedMat = new cv.Mat();
             cv.warpPerspective(screenshotMat, rectifiedMat, matrix, new cv.Size(screenshotMat.cols, screenshotMat.rows));
 
-            //
-            // // draw the rectified image on a canvas
+
+            // put the image on the canvas
+
             const rectifiedImageData = new ImageData(
               new Uint8ClampedArray(rectifiedMat.data),
               rectifiedMat.cols,
@@ -166,18 +167,8 @@ const TransformedImage = ({ webcamRef, quadrilateral }) => {
             rectifiedCanvas.height = rectifiedMat.rows;
             rectifiedContext.putImageData(rectifiedImageData, 0, 0);
 
-            // draw corners on the canvas
             const transformedCorners = new cv.Mat();
             cv.perspectiveTransform(quadrilateralMat, transformedCorners, matrix);
-
-            rectifiedContext.fillStyle = 'white';
-            for (let i = 0; i < transformedCorners.rows; i++) {
-              const x = transformedCorners.data32F[i * 2];
-              const y = transformedCorners.data32F[i * 2 + 1];
-              rectifiedContext.beginPath();
-              rectifiedContext.arc(x, y, 3, 0, 2 * Math.PI);
-              rectifiedContext.fill();
-            }
 
             const transformedQuadrilateral = {};
             const keyOrder = ['topLeft', 'topRight', 'bottomRight', 'bottomLeft'];  // Define the correct order of corners
@@ -187,6 +178,74 @@ const TransformedImage = ({ webcamRef, quadrilateral }) => {
                 y: transformedCorners.data32F[i * 2 + 1],
               };
             });
+
+            // START CROP STUFF
+            // const findDistance = (point1, point2) => {
+            //   const dx = point1.x - point2.x;
+            //   const dy = point1.y - point2.y;
+            //   return Math.sqrt(dx * dx + dy * dy);
+            // };
+            //
+            // const findLongestSide = (quadrilateral) => {
+            //   const side1 = findDistance(quadrilateral.topLeft, quadrilateral.topRight);
+            //   const side2 = findDistance(quadrilateral.topRight, quadrilateral.bottomRight);
+            //   const side3 = findDistance(quadrilateral.bottomRight, quadrilateral.bottomLeft);
+            //   const side4 = findDistance(quadrilateral.bottomLeft, quadrilateral.topLeft);
+            //
+            //   return Math.max(side1, side2, side3, side4);
+            // };
+            //
+            // const calculateCroppingOrigin = (quadrilateral) => {
+            //   const longestSide = findLongestSide(quadrilateral);
+            //
+            //   const croppingOrigin = {
+            //     x: quadrilateral.topLeft.x - (longestSide / 18),
+            //     y: quadrilateral.topLeft.y - (longestSide / 18),
+            //   };
+            //
+            //   return croppingOrigin;
+            // };
+            //
+            // const longestSide = findLongestSide(transformedQuadrilateral);
+            // const croppingOrigin = calculateCroppingOrigin(transformedQuadrilateral, longestSide);
+            // const croppingSize = longestSide + (1 / 9) * longestSide
+            //
+            // Define the region (example coordinates)
+            // const regionX = croppingOrigin.x;
+            // const regionY = croppingOrigin.y;
+            // const regionWidth = croppingSize;
+            // const regionHeight = croppingSize;
+
+            // Extract the specified region from the original Mat
+            // const regionMat = new cv.Mat()
+
+            // const roiRect = new cv.Rect(regionX, regionY, regionWidth, regionHeight)
+            //
+            // const regionMat = rectifiedMat.roi(roiRect).clone();
+
+            // cv.rectangle(regionMat, new cv.Point(regionX, regionY), new cv.Point(regionX + regionWidth, regionY + regionHeight), new cv.Scalar(0, 255, 0), 2)
+            // rectifiedMat.roi(null)
+
+            // Scale the ROI to a new size
+            // const scaledWidth = 600; // Specify the desired width
+            // const scaledHeight = (regionHeight / regionWidth) * scaledWidth; // Maintain aspect ratio
+            // const scaledRegionMat = new cv.Mat();
+            // cv.resize(regionMat, scaledRegionMat, new cv.Size(scaledWidth, scaledHeight), 0, 0, cv.INTER_AREA);
+            //
+            // cv.imshow(rectifiedCanvasRef.current, scaledRegionMat)
+            // regionMat.delete()
+            //
+            // END CROP STUFF
+
+            // draw corners on the canvas
+            rectifiedContext.fillStyle = 'white';
+            for (let i = 0; i < transformedCorners.rows; i++) {
+              const x = transformedCorners.data32F[i * 2];
+              const y = transformedCorners.data32F[i * 2 + 1];
+              rectifiedContext.beginPath();
+              rectifiedContext.arc(x, y, 3, 0, 2 * Math.PI);
+              rectifiedContext.fill();
+            }
 
             const drawGrid = (quadrilateral, context) => {
               const { topLeft, topRight, bottomLeft, bottomRight } = quadrilateral;
@@ -234,7 +293,7 @@ const TransformedImage = ({ webcamRef, quadrilateral }) => {
                 context.stroke();
               }
             }
-
+            //
             drawGrid(transformedQuadrilateral, rectifiedContext)
 
             // // Release Mats
