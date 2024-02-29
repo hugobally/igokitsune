@@ -1,23 +1,20 @@
-// TransformedImage.js
 import React, { useEffect, useRef, useState } from 'react';
+import GobanSourceImage from '@/components/GobanSourceImage'
+import DisplayDebug from '@/components/DisplayDebug'
 
 const transformQuadrilateralToSquare = (quadrilateral) => {
   if (!quadrilateral) return null;
 
-  // Calculate the bounding box of the quadrilateral
   const minX = Math.min(quadrilateral.topLeft.x, quadrilateral.topRight.x, quadrilateral.bottomRight.x, quadrilateral.bottomLeft.x);
   const minY = Math.min(quadrilateral.topLeft.y, quadrilateral.topRight.y, quadrilateral.bottomRight.y, quadrilateral.bottomLeft.y);
   const maxX = Math.max(quadrilateral.topLeft.x, quadrilateral.topRight.x, quadrilateral.bottomRight.x, quadrilateral.bottomLeft.x);
   const maxY = Math.max(quadrilateral.topLeft.y, quadrilateral.topRight.y, quadrilateral.bottomRight.y, quadrilateral.bottomLeft.y);
 
-  // Calculate the side length of the square (longest side of the bounding box)
   const sideLength = Math.max(maxX - minX, maxY - minY);
 
-  // Calculate the center of the quadrilateral
   const centerX = (quadrilateral.topLeft.x + quadrilateral.topRight.x + quadrilateral.bottomRight.x + quadrilateral.bottomLeft.x) / 4;
   const centerY = (quadrilateral.topLeft.y + quadrilateral.topRight.y + quadrilateral.bottomRight.y + quadrilateral.bottomLeft.y) / 4;
 
-  // Calculate the square with a side equal to the longest side of the bounding box
   const square = {
     topLeft: { x: centerX - sideLength / 2, y: centerY - sideLength / 2 },
     topRight: { x: centerX + sideLength / 2, y: centerY - sideLength / 2 },
@@ -29,11 +26,12 @@ const transformQuadrilateralToSquare = (quadrilateral) => {
 };
 
 const TransformedImage = ({ webcamRef, quadrilateral }) => {
-  // const canvasRef = useRef(null);
   const rectifiedCanvasRef = useRef(null);
 
   const [frozenScreenshot, setFrozenScreenshot] = useState(null)
   const [processing, setProcessing] = useState(false)
+
+  const [brightnessValues, setBrightnessValues] = useState([])
 
   const getScreenshot = async (webcam) => {
     const screenshot = await webcam.getScreenshot()
@@ -72,43 +70,7 @@ const TransformedImage = ({ webcamRef, quadrilateral }) => {
           if (quadrilateral) {
             const { topLeft, topRight, bottomRight, bottomLeft } = quadrilateral;
 
-            // context.beginPath();
-            // context.moveTo(topLeft.x, topLeft.y);
-            // context.lineTo(topRight.x, topRight.y);
-            // context.lineTo(bottomRight.x, bottomRight.y);
-            // context.lineTo(bottomLeft.x, bottomLeft.y);
-            // context.closePath();
-            // context.stroke();
-
-            // Transform the quadrilateral into a square
             const square = transformQuadrilateralToSquare(quadrilateral);
-
-            // Set text color to white
-            // context.fillStyle = 'white';
-            //
-            // const keys = Object.keys(quadrilateral);
-            // keys.forEach((key) => {
-            //   const point = quadrilateral[key];
-            //
-            //   // Display the key and coordinates next to each point
-            //   context.fillText(`Key: ${key}`, point.x + 5, point.y - 5);
-            //   context.fillText(`X: ${point.x.toFixed(2)}`, point.x + 5, point.y + 10);
-            //   context.fillText(`Y: ${point.y.toFixed(2)}`, point.x + 5, point.y + 25);
-            // });
-            //
-            // // Draw the square on the canvas with a blue outline
-            // context.globalAlpha = 0.5; // Set alpha for transparency
-            // context.strokeStyle = 'blue'; // Set line color to blue
-            // context.lineWidth = 2; // Set line width
-            // context.beginPath();
-            // context.moveTo(square.topLeft.x, square.topLeft.y);
-            // context.lineTo(square.topRight.x, square.topRight.y);
-            // context.lineTo(square.bottomRight.x, square.bottomRight.y);
-            // context.lineTo(square.bottomLeft.x, square.bottomLeft.y);
-            // context.closePath();
-            // context.stroke();
-
-            // Convert screenshot, quadrilateral, and square to OpenCV Mats
 
             const base64toImgData = (base64Image) => {
               return new Promise((resolve, reject) => {
@@ -148,15 +110,10 @@ const TransformedImage = ({ webcamRef, quadrilateral }) => {
               squareMat.data32F[i * 2 + 1] = square[key].y;
             });
 
-            // // Get the perspective transform matrix
             const matrix = cv.getPerspectiveTransform(quadrilateralMat, squareMat);
 
-            // // Perform warp perspective
             const rectifiedMat = new cv.Mat();
             cv.warpPerspective(screenshotMat, rectifiedMat, matrix, new cv.Size(screenshotMat.cols, screenshotMat.rows));
-
-
-            // put the image on the canvas
 
             const rectifiedImageData = new ImageData(
               new Uint8ClampedArray(rectifiedMat.data),
@@ -178,6 +135,13 @@ const TransformedImage = ({ webcamRef, quadrilateral }) => {
                 y: transformedCorners.data32F[i * 2 + 1],
               };
             });
+
+            const grayMat = new cv.Mat();
+            cv.cvtColor(rectifiedMat, grayMat, cv.COLOR_RGBA2GRAY);
+
+            const gobanImage = new GobanSourceImage(grayMat, transformedCorners, 19)
+            setBrightnessValues(gobanImage.findStones())
+            grayMat.delete();
 
             // START CROP STUFF
             // const findDistance = (point1, point2) => {
@@ -237,7 +201,6 @@ const TransformedImage = ({ webcamRef, quadrilateral }) => {
             //
             // END CROP STUFF
 
-            // draw corners on the canvas
             rectifiedContext.fillStyle = 'white';
             for (let i = 0; i < transformedCorners.rows; i++) {
               const x = transformedCorners.data32F[i * 2];
@@ -293,10 +256,9 @@ const TransformedImage = ({ webcamRef, quadrilateral }) => {
                 context.stroke();
               }
             }
-            //
+
             drawGrid(transformedQuadrilateral, rectifiedContext)
 
-            // // Release Mats
             screenshotMat.delete();
             quadrilateralMat.delete();
             squareMat.delete();
@@ -319,32 +281,23 @@ const TransformedImage = ({ webcamRef, quadrilateral }) => {
   }, [processing, frozenScreenshot, webcamRef, quadrilateral]);
 
   return (
-    <div style={{position: 'relative', display: 'inline-block'}}>
-      {/*<canvas*/}
-      {/*  ref={canvasRef}*/}
-      {/*  width={640}*/}
-      {/*  height={480}*/}
-      {/*  style={{*/}
-      {/*    position: 'absolute',*/}
-      {/*    top: 0,*/}
-      {/*    left: 0,*/}
-      {/*    zIndex: 2,*/}
-      {/*    backgroundColor: 'transparent'*/}
-      {/*  }}*/}
-      {/*/>*/}
-      <canvas
-        ref={rectifiedCanvasRef}
-        width={640}
-        height={480}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          zIndex: 1,
-          backgroundColor: 'transparent'
-        }}
-      />
-    </div>
+    <>
+      <div style={{position: 'relative', display: 'inline-block'}}>
+        <canvas
+          ref={rectifiedCanvasRef}
+          width={640}
+          height={480}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            zIndex: 1,
+            backgroundColor: 'transparent'
+          }}
+        />
+      </div>
+      <DisplayDebug brightnessValues={brightnessValues}></DisplayDebug>
+    </>
   );
 };
 

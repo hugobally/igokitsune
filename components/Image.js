@@ -1,12 +1,25 @@
 class Image {
-  constructor(width, height) {
-    this.width = width;
-    this.height = height;
+  #imageMat = null;
+
+  constructor(mat) {
+    this.#imageMat = mat
+    this.width = mat.cols;
+    this.height = mat.rows;
   }
 
-  getImageMat() {
-    // Simulated function, replace it with actual logic to convert Image to OpenCV mat
-    return new cv.Mat(this.height, this.width, cv.CV_8UC4, [255, 255, 255, 255]); // Replace with actual data
+  get imageMat() {
+    // if (this.#imageMat === null) {
+    //   this.#imageMat = this.createImageMat();
+    // }
+    return this.#imageMat;
+  }
+  
+  toImageData() {
+    new ImageData(
+      new Uint8ClampedArray(this.#imageMat.data),
+      this.width,
+      this.height
+    );
   }
 }
 

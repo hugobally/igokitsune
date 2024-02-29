@@ -1,8 +1,11 @@
+import Image from '@/components/Image'
+
 class GobanSourceImage extends Image {
-  constructor(width, height, gobanCornerCoords, gobanSize) {
-    super(width, height);
+  constructor(mat, cornerCoords, gobanSize) {
+    super(mat);
+
     this.gobanSize = gobanSize;
-    this.gobanCoordinates = new Matrix(gobanSize, (i, j) => this.calculateCoordinate(gobanCornerCoords, i, j));
+    this.points = new Matrix(gobanSize, (i, j) => ({coords: this.calculateCoordinate(cornerCoords, i, j),brightness: null}));
   }
 
   calculateCoordinate(gobanCorners, i, j) {
@@ -12,24 +15,56 @@ class GobanSourceImage extends Image {
     return { x, y };
   }
 
-  findStones(image, pointCoords, regionSize) {
-    const imageMat = image.getImageMat();
+  findStones() {
+    const brightnessValues = []
 
-    const roiWidth = regionSize.width;
-    const roiHeight = regionSize.height;
+    const firstPoint = this.points.entryAt(0, 0);
+    const secondPoint = this.points.entryAt(0, 1);
+    const regionSize = secondPoint.coords.x - firstPoint.coords.x;
 
-    const roiX = pointCoords.x - roiWidth / 2;
-    const roiY = pointCoords.y - roiHeight / 2;
+    this.points.forEach((point)=> {
+      point.brightness = this.getPointBrightness(point, regionSize)
+      brightnessValues.push(point.brightness)
+    })
 
-    const roiMat = imageMat.roi(new cv.Rect(roiX, roiY, roiWidth, roiHeight)).clone();
+    console.log(this.analyzeData(brightnessValues))
 
-    const grayMat = new cv.Mat();
-    cv.cvtColor(roiMat, grayMat, cv.COLOR_RGBA2GRAY);
+    return brightnessValues
 
-    const meanValue = cv.mean(grayMat);
+    // return new Matrix(this.gobanSize, (row, col) => {
+    //   return this.points.entryAt(row, col).brightness
+    // });
+  }
+
+  analyzeData(data) {
+    const mean = data.reduce((sum, value) => sum + value, 0) / data.length;
+    const squaredDifferences = data.map(value => Math.pow(value - mean, 2));
+    const variance = squaredDifferences.reduce((sum, value) => sum + value, 0) / data.length;
+    const standardDeviation = Math.sqrt(variance);
+
+    const outlierThreshold = 2 * standardDeviation;
+    const outliers = data.filter(value => Math.abs(value - mean) > outlierThreshold);
+
+    if (outliers.length === 1) {
+      return "One value is significantly different.";
+    } else if (outliers.length === 0) {
+      return "Values are clustered together.";
+    } else {
+      return "I'm not sure :/"
+    }
+  }
+
+  getPointBrightness(point, regionSize) {
+    const imageMat = this.imageMat()
+
+    const roiX = point.coords.x - regionSize / 2;
+    const roiY = point.coords.y - regionSize / 2;
+
+    const roiMat = imageMat.roi(new cv.Rect(roiX, roiY, regionSize, regionSize)).clone();
+
+    const meanValue = cv.mean(roiMat);
 
     roiMat.delete();
-    grayMat.delete();
 
     return meanValue;
   }

@@ -1,30 +1,15 @@
 import Point from './Point';
 
 class Goban {
-  constructor(gameParameters) {
-    this.points = this.initializeGoban(gameParameters.size);
+  constructor(gameConfig) {
+    this.points = this.initializeGoban(gameConfig.size);
   }
 
   initializeGoban(size) {
     return new Matrix(19).setEntries(() => new Point())
   }
 
-  findStones(gobanSourceImage) {
-
-    // Perform k-means clustering
-    // const brightnessValues = this.points.flat().map((point) => point.getBrightness(this.image));
-    // const clusters = tf.cluster.kmeans(tf.tensor1d(brightnessValues), 3);
-
-    // Get cluster assignments
-    // const assignments = clusters.assignments.arraySync();
-
-    // Calculate average brightness for each cluster
-    // const clusterBrightness = clusters.centers.arraySync().map((center) => center[0]);
-
-    // Find the index of the cluster with the smallest and largest average brightness
-    // const minBrightnessIndex = clusterBrightness.indexOf(Math.min(...clusterBrightness));
-    // const maxBrightnessIndex = clusterBrightness.indexOf(Math.max(...clusterBrightness));
-
+  // findStones(gobanSourceImage) {
     // Set stones based on clustering results
     // this.points.flat().forEach((point, index) => {
     //   if (assignments[index] === minBrightnessIndex) {
@@ -35,7 +20,7 @@ class Goban {
     //     point.removeStone();
     //   }
     // });
-  }
+  // }
 
   printGoban() {
     console.log(this.points.map((row) => row.map((point) => point.getStone() || 'null').join(' ')).join('\n'));
