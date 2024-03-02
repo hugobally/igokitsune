@@ -97,7 +97,7 @@ const WebcamComponent = () => {
   }, [inputVertices]);
 
   return (
-    <div className="relative">
+    <div className="flex flex-col">
       <div style={{ position: 'relative' }}>
         <Webcam
           ref={webcamRef}

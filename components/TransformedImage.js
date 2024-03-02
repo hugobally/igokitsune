@@ -31,7 +31,9 @@ const TransformedImage = ({ webcamRef, quadrilateral }) => {
   const [frozenScreenshot, setFrozenScreenshot] = useState(null)
   const [processing, setProcessing] = useState(false)
 
-  const [brightnessValues, setBrightnessValues] = useState([])
+  const [debugPoints, setDebugPoints] = useState([])
+
+  const [debugStopOnFirstScreenshot, setDebugStopOnFirstScreenshot] = useState(false)
 
   const getScreenshot = async (webcam) => {
     const screenshot = await webcam.getScreenshot()
@@ -46,8 +48,11 @@ const TransformedImage = ({ webcamRef, quadrilateral }) => {
         getScreenshot(webcam)
       }
 
-      if (frozenScreenshot && !processing) {
+      if (frozenScreenshot && !processing && !debugStopOnFirstScreenshot) {
         setProcessing(true)
+
+        setDebugStopOnFirstScreenshot(false)
+
         const screenshot = frozenScreenshot
         // const canvas = canvasRef.current;
         const rectifiedCanvas = rectifiedCanvasRef.current; // New canvas element
@@ -139,8 +144,8 @@ const TransformedImage = ({ webcamRef, quadrilateral }) => {
             const grayMat = new cv.Mat();
             cv.cvtColor(rectifiedMat, grayMat, cv.COLOR_RGBA2GRAY);
 
-            const gobanImage = new GobanSourceImage(grayMat, transformedCorners, 19)
-            setBrightnessValues(gobanImage.findStones())
+            const gobanImage = new GobanSourceImage(grayMat, transformedQuadrilateral, 19)
+            setDebugPoints(gobanImage.findStones())
             grayMat.delete();
 
             // START CROP STUFF
@@ -288,7 +293,7 @@ const TransformedImage = ({ webcamRef, quadrilateral }) => {
           width={640}
           height={480}
           style={{
-            position: 'absolute',
+            // position: 'absolute',
             top: 0,
             left: 0,
             zIndex: 1,
@@ -296,7 +301,7 @@ const TransformedImage = ({ webcamRef, quadrilateral }) => {
           }}
         />
       </div>
-      <DisplayDebug brightnessValues={brightnessValues}></DisplayDebug>
+      <DisplayDebug points={debugPoints}></DisplayDebug>
     </>
   );
 };

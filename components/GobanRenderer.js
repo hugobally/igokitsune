@@ -39,4 +39,4 @@ class GobanRenderer {
   }
 }
 
-export default Goban;
+export default GobanRenderer;

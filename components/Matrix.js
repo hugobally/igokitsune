@@ -34,3 +34,5 @@ class Matrix {
     console.log(this.data.map(row => row.join(' ')).join('\n'));
   }
 }
+
+export default Matrix;

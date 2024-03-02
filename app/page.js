@@ -8,7 +8,7 @@ const Home = () => {
   const goban = useGoban();
 
   useEffect(() => {
-    goban.printGoban();
+    // goban.printGoban();
   }, [goban]);
 
   return (

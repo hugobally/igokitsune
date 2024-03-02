@@ -1,4 +1,5 @@
 import Point from './Point';
+import Matrix from '@/components/Matrix'
 
 class Goban {
   constructor(gameConfig) {
@@ -6,7 +7,7 @@ class Goban {
   }
 
   initializeGoban(size) {
-    return new Matrix(19).setEntries(() => new Point())
+    // return new Matrix(19)
   }
 
   // findStones(gobanSourceImage) {
@@ -22,9 +23,9 @@ class Goban {
     // });
   // }
 
-  printGoban() {
-    console.log(this.points.map((row) => row.map((point) => point.getStone() || 'null').join(' ')).join('\n'));
-  }
+  // printGoban() {
+  //   console.log(this.points.map((row) => row.map((point) => point.getStone() || 'null').join(' ')).join('\n'));
+  // }
 }
 
 export default Goban;
