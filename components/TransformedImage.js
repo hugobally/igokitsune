@@ -141,12 +141,12 @@ const TransformedImage = ({ webcamRef, quadrilateral }) => {
               };
             });
 
-            const grayMat = new cv.Mat();
-            cv.cvtColor(rectifiedMat, grayMat, cv.COLOR_RGBA2GRAY);
+            // const grayMat = new cv.Mat();
+            // cv.cvtColor(rectifiedMat, grayMat, cv.COLOR_RGBA2GRAY);
 
-            const gobanImage = new GobanSourceImage(grayMat, transformedQuadrilateral, 19)
+            const gobanImage = new GobanSourceImage(rectifiedMat, transformedQuadrilateral, 19)
             setDebugPoints(gobanImage.findStones())
-            grayMat.delete();
+            // grayMat.delete();
 
             // START CROP STUFF
             // const findDistance = (point1, point2) => {
