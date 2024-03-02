@@ -1,12 +1,14 @@
 import React, { useEffect, useRef } from 'react';
-import { select, scaleLinear, axisBottom, axisLeft, interpolateRgb, scaleOrdinal, schemeCategory10 } from 'd3';
+import { select, scaleLinear, axisBottom, axisLeft, interpolateRgb } from 'd3';
 
 const DisplayDebug = ({ points }) => {
   const svgRef = useRef(null);
+  const svgRef2 = useRef(null);
 
   useEffect(() => {
     // Clear existing SVG content
     select(svgRef.current).selectAll('*').remove();
+    select(svgRef2.current).selectAll('*').remove();
 
     if (points && points.length > 0) {
       const margin = { top: 20, right: 20, bottom: 30, left: 50 };
@@ -17,18 +19,19 @@ const DisplayDebug = ({ points }) => {
       const xValues = points.map(point => point.coords.x);
       const yValues = points.map(point => point.coords.y);
 
+      // Create SVG for the first graph
       const svg = select(svgRef.current)
         .attr('width', width + margin.left + margin.right)
-        .attr('height', height * 2 + margin.top + margin.bottom) // Doubled height for two graphs
+        .attr('height', height + margin.top + margin.bottom)
         .append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`);
 
-      // X scale
+      // X scale for the first graph
       const x = scaleLinear()
         .domain([Math.min(...xValues), Math.max(...xValues)])
         .range([0, width]);
 
-      // Y scale
+      // Y scale for the first graph
       const y = scaleLinear()
         .domain([Math.min(...yValues), Math.max(...yValues)])
         .range([height, 0]);
@@ -36,28 +39,27 @@ const DisplayDebug = ({ points }) => {
       // Color scale for the first graph
       const colorScale = interpolateRgb('blue', 'red');
 
-      // Append circles for each data point with tooltips (First graph)
-      points.forEach(point => {
-        const { coords, brightness } = point;
-
-        svg.append('circle')
-          .attr('cx', x(coords.x))
-          .attr('cy', y(coords.y))
-          .attr('r', 5) // Fixed radius for all circles
-          .style('fill', colorScale(brightness / 255)) // Use brightness value for color scale
-          .on('mouseover', (event) => {
-            // Show tooltip
-            tooltip.style('visibility', 'visible').text(`Brightness: ${brightness}`);
-          })
-          .on('mousemove', (event) => {
-            // Move tooltip with mouse
-            tooltip.style('top', (event.pageY - 10) + 'px').style('left', (event.pageX + 10) + 'px');
-          })
-          .on('mouseout', () => {
-            // Hide tooltip on mouseout
-            tooltip.style('visibility', 'hidden');
-          });
-      });
+      // Append circles for each data point with tooltips for the first graph
+      svg.selectAll('circle')
+        .data(points)
+        .enter()
+        .append('circle')
+        .attr('cx', d => x(d.coords.x))
+        .attr('cy', d => y(d.coords.y))
+        .attr('r', 5) // Fixed radius for all circles
+        .style('fill', d => colorScale(d.brightness / 255)) // Use brightness value for color scale
+        .on('mouseover', (event, d) => {
+          // Show tooltip
+          tooltip.style('visibility', 'visible').text(`Brightness: ${d.brightness}`);
+        })
+        .on('mousemove', (event) => {
+          // Move tooltip with mouse
+          tooltip.style('top', (event.pageY - 10) + 'px').style('left', (event.pageX + 10) + 'px');
+        })
+        .on('mouseout', () => {
+          // Hide tooltip on mouseout
+          tooltip.style('visibility', 'hidden');
+        });
 
       // Append axes for the first graph
       svg.append('g')
@@ -67,41 +69,46 @@ const DisplayDebug = ({ points }) => {
       svg.append('g')
         .call(axisLeft(y));
 
-      // Color scale for the second graph based on cluster values
-      const colorScaleCluster = scaleOrdinal(schemeCategory10);
+      // Create SVG for the second graph
+      const svg2 = select(svgRef2.current)
+        .attr('width', width + margin.left + margin.right)
+        .attr('height', height + margin.top + margin.bottom)
+        .append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`);
 
-      // Append circles for each data point with tooltips (Second graph)
-      points.forEach(point => {
-        const { coords, cluster } = point;
-
-        svg.append('circle')
-          .attr('cx', x(coords.x))
-          .attr('cy', y(coords.y) + height + margin.bottom) // Adjusted y position for the second graph
-          .attr('r', 5) // Fixed radius for all circles
-          .style('fill', colorScaleCluster(cluster))
-          .on('mouseover', (event) => {
-            // Show tooltip
-            tooltip.style('visibility', 'visible').text(`Cluster: ${cluster}`);
-          })
-          .on('mousemove', (event) => {
-            // Move tooltip with mouse
-            tooltip.style('top', (event.pageY - 10) + 'px').style('left', (event.pageX + 10) + 'px');
-          })
-          .on('mouseout', () => {
-            // Hide tooltip on mouseout
-            tooltip.style('visibility', 'hidden');
-          });
-      });
+      // Append circles for each data point with tooltips for the second graph
+      svg2.selectAll('circle')
+        .data(points)
+        .enter()
+        .append('circle')
+        .attr('cx', d => x(d.coords.x))
+        .attr('cy', d => y(d.coords.y))
+        .attr('r', 5) // Fixed radius for all circles
+        .style('fill', d => {
+          if (d.stone === 'black') return 'blue';
+          else if (d.stone === 'white') return 'white';
+          else return 'black';
+        }) // Use 'stone' value for color
+        .on('mouseover', (event, d) => {
+          // Show tooltip
+          tooltip.style('visibility', 'visible').text(`Stone: ${d.stone}`);
+        })
+        .on('mousemove', (event) => {
+          // Move tooltip with mouse
+          tooltip.style('top', (event.pageY - 10) + 'px').style('left', (event.pageX + 10) + 'px');
+        })
+        .on('mouseout', () => {
+          // Hide tooltip on mouseout
+          tooltip.style('visibility', 'hidden');
+        });
 
       // Append axes for the second graph
-      svg.append('g')
-        .attr('transform', `translate(0,${height * 2 + margin.bottom})`) // Adjusted position for the second graph
+      svg2.append('g')
+        .attr('transform', `translate(0,${height})`)
         .call(axisBottom(x));
 
-      svg.append('g')
-        .attr('transform', `translate(0,${height + margin.bottom})`) // Adjusted position for the second graph
+      svg2.append('g')
         .call(axisLeft(y));
-
     }
   }, [points]);
 
@@ -114,7 +121,12 @@ const DisplayDebug = ({ points }) => {
     .style('color', '#fff')
     .text(''); // Initial empty text
 
-  return <svg ref={svgRef}></svg>;
+  return (
+    <div>
+      <svg ref={svgRef}></svg>
+      <svg ref={svgRef2}></svg>
+    </div>
+  );
 };
 
 export default DisplayDebug;

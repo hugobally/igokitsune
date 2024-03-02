@@ -1,5 +1,6 @@
 import Image from '@/components/Image'
 import Matrix from '@/components/Matrix'
+import { kmeans } from 'ml-kmeans';
 
 class GobanSourceImage extends Image {
   constructor(mat, cornerCoords, gobanSize) {
@@ -36,7 +37,38 @@ class GobanSourceImage extends Image {
     const k = 3; // You can adjust the number of clusters
     // Perform k-means clustering (assuming you have a k-means implementation)
     // const data = this.kMeans(brightnessValues, k); // You need to implement or use a k-means function
-    this.kMeans(debugPoints, k); // You need to implement or use a k-means function
+    // this.kMeans(debugPoints, k); // You need to implement or use a k-means function
+
+
+    const highestBrightness = Math.max(...debugPoints.map(point => point.brightness));
+    const lowestBrightness = Math.min(...debugPoints.map(point => point.brightness));
+    const averageBrightness = debugPoints.reduce((sum, point) => sum + point.brightness, 0) / debugPoints.length;
+
+    const initialCentroids = [[highestBrightness], [lowestBrightness], [averageBrightness]]
+    console.log(initialCentroids)
+
+    const dataForClustering = debugPoints.map(point => [point.brightness]);
+
+    const { clusters, centroids } = kmeans(dataForClustering, k, { initialization: initialCentroids});
+    // Perform k-means clustering
+
+    // Find cluster with highest and lowest centroid
+    const maxCentroidIndex = centroids.reduce((maxIndex, centroid, index) => (centroid > centroids[maxIndex] ? index : maxIndex), 0);
+    const minCentroidIndex = centroids.reduce((minIndex, centroid, index) => (centroid < centroids[minIndex] ? index : minIndex), 0);
+
+    debugPoints.forEach((point, index) => {
+      if (clusters[index] === maxCentroidIndex) {
+        point.stone = 'black';
+      } else if (clusters[index] === minCentroidIndex) {
+        point.stone = 'neutral';
+      } else {
+        point.stone = 'white';
+      }
+    });
+
+    // debugPoints.forEach((point, index) => {
+    //   point.cluster = clusters[index];
+    // });
 
     // const maxBrightness = Array.from({ length: k }, (_, clusterIndex) => {
     //   const values = data
